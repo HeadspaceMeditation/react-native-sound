@@ -6,6 +6,10 @@
     #import <React/RCTUtils.h>
 #endif
 
+@interface RNSound ()
+@property (nonatomic, strong) NSMutableDictionary *progressTimers;
+@end
+
 @implementation RNSound {
   NSMutableDictionary* _playerPool;
   NSMutableDictionary* _callbackPool;
@@ -38,6 +42,13 @@
             [player pause];
         }
     }
+}
+
+- (NSMutableDictionary*) progressTimers {
+    if (!_progressTimers) {
+        _progressTimers = [[NSMutableDictionary alloc] init];
+    }
+    return _progressTimers;
 }
 
 -(NSMutableDictionary*) playerPool {
@@ -89,7 +100,7 @@ RCT_EXPORT_MODULE();
 
 -(NSArray<NSString *> *)supportedEvents
   {
-    return @[@"onPlayChange"];
+    return @[@"onPlayChange", @"onProgressChange"];
   }
 
 -(NSDictionary *)constantsToExport {
@@ -308,4 +319,35 @@ RCT_EXPORT_METHOD(getCurrentTime:(nonnull NSNumber*)key
 - (void)setOnPlay:(BOOL)isPlaying forPlayerKey:(nonnull NSNumber*)playerKey {
   [self sendEventWithName:@"onPlayChange" body:@{@"isPlaying": isPlaying ? @YES : @NO, @"playerKey": playerKey}];
 }
+
+#pragma mark - Progress Listener
+
+RCT_EXPORT_METHOD(startProgressListener:(nonnull NSNumber*)key interval:(NSInteger)interval) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval: interval
+                                         target: self
+                                       selector: @selector(timerFired:)
+                                       userInfo: @{ @"playerKey": key }
+                                        repeats: YES];
+        self.progressTimers[key] = timer;
+    });
+}
+
+RCT_EXPORT_METHOD(stopProgressListener:(nonnull NSNumber*)key) {
+    NSTimer *timer = self.progressTimers[key];
+    [timer invalidate];
+    self.progressTimers[key] = nil;
+}
+
+- (void) timerFired:(NSTimer *)timer {
+    NSNumber *playerKey = timer.userInfo[@"playerKey"];
+    AVAudioPlayer* player = [self playerForKey:playerKey];
+
+    [self sendEventWithName:@"onProgressChange" body:@{
+       @"totalTime": @(player.duration),
+       @"currentTime": @(player.currentTime),
+       @"playerKey": playerKey}
+     ];
+}
+
 @end
