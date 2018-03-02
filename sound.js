@@ -67,6 +67,7 @@ function Sound(filename, basePath, onError, options) {
   this._pan = 0;
   this._numberOfLoops = 0;
   this._speed = 1;
+  this.onProgressSubscription = null;
   RNSound.prepare(this._filename, this._key, options || {}, (error, props) => {
     if (props) {
       if (typeof props.duration === 'number') {
@@ -83,6 +84,29 @@ function Sound(filename, basePath, onError, options) {
     onError && onError(error, props);
   });
 }
+
+Sound.prototype.addProgressListener = function({interval, callback}) {
+  console.log("ADD PROGRESS LISTENER Sound.prototype")
+
+  this.onProgressSubscription = eventEmitter.addListener(
+    'onProgressChange',
+    (param) => {
+      const { totalTime, currentTime, playerKey } = param;
+      if (playerKey === this._key) {
+        callback({totalTime, currentTime});
+      }
+    },
+  );
+  RNSound.startProgressListener(this._key, interval)
+};
+
+Sound.prototype.removeProgressListener = function() {
+  RNSound.stopProgressListener(this._key);
+  if (this.onProgressSubscription != null) {
+    this.onProgressSubscription.remove();
+    this.onProgressSubscription = null;
+  }
+};
 
 Sound.prototype.isLoaded = function() {
   return this._loaded;
