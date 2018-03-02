@@ -86,8 +86,6 @@ function Sound(filename, basePath, onError, options) {
 }
 
 Sound.prototype.addProgressListener = function({interval, callback}) {
-  console.log("ADD PROGRESS LISTENER Sound.prototype")
-
   this.onProgressSubscription = eventEmitter.addListener(
     'onProgressChange',
     (param) => {
