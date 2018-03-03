@@ -85,7 +85,7 @@ function Sound(filename, basePath, onError, options) {
   });
 }
 
-Sound.prototype.addProgressListener = function({interval, callback}) {
+Sound.prototype.addProgressListener = function(callback, interval) {
   this.onProgressSubscription = eventEmitter.addListener(
     'onProgressChange',
     (param) => {
